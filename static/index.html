@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识库助手</title>
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <style>
+        body.electron-mode .app-container {
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="conversations-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    <svg class="sidebar-icon" viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="none" stroke="currentColor" stroke-width="1.5" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>对话</span>
+                </div>
+                <div class="sidebar-header-actions">
+                    <button id="settings-btn" class="btn-icon-line three-vertical-dots" title="设置">
+                        <span class="v-dot"></span>
+                        <span class="v-dot"></span>
+                        <span class="v-dot"></span>
+                    </button>
+                    <button id="new-conversation-btn" class="btn-icon-line" title="新建对话">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M12 5v14M5 12h14"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="conversations-divider"></div>
+            
+            <div id="conversations-list" class="conversations-list">
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="chat-header">
+                <div class="header-actions">
+                    <div class="current-model-info">
+                        当前模型: <span id="current-model-name">未选择</span>
+                    </div>
+                    <div class="search-status-info" id="search-status-info">
+                        <span class="search-status-indicator" id="search-status-indicator"></span>
+                        <span id="search-mode-text">检索模式: 加载中...</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="chat-container" id="chat-container">
+                <div class="welcome-message">
+                    <h2>欢迎使用金蝶知识库助手</h2>
+                    <p>我可以帮助您:</p>
+                    <ul>
+                        <li>查询金蝶平台实体、表单、报表定义</li>
+                        <li>获取代码模板和API使用示例</li>
+                        <li>解答开发过程中的问题</li>
+                        <li>根据您的反馈优化知识库</li>
+                    </ul>
+                    <p class="hint">选择AI模型可获得更智能的回答，未配置模型时将基于知识库检索生成响应。</p>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="user-input" 
+                        placeholder="输入您的问题..." 
+                        rows="1"
+                    ></textarea>
+                    <button id="send-btn" class="btn-send">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-hints">
+                    <span>按 Enter 发送，Shift+Enter 换行</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="settings-panel" class="fullscreen-panel">
+        <div class="fullscreen-panel-header">
+            <button class="panel-back-btn" id="close-settings-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="none" stroke="currentColor" stroke-width="1.5" d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <h2>设置</h2>
+        </div>
+        <div class="fullscreen-panel-body">
+            <div class="settings-categories">
+                <div class="settings-category" data-category="ai-models">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+                            <circle cx="7.5" cy="14.5" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <circle cx="16.5" cy="14.5" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <span>AI模型</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="settings-category" data-category="knowledge-base">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                        <span>知识库管理</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="settings-category" data-category="session-stats">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M18 20V10M12 20V4M6 20v-6"/>
+                        </svg>
+                        <span>会话统计</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="settings-category" data-category="knowledge-learning">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        <span>知识学习</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="settings-category electron-only" data-category="connection" style="display: none;">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        <span>连接设置</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="settings-category electron-only" data-category="about" style="display: none;">
+                    <div class="settings-category-header">
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="12" y1="16" x2="12" y2="12" stroke="currentColor" stroke-width="1.5"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8" stroke="currentColor" stroke-width="1.5"/>
+                        </svg>
+                        <span>关于</span>
+                        <svg class="chevron" viewBox="0 0 24 24" width="18" height="18">
+                            <path fill="none" stroke="currentColor" stroke-width="1.5" d="M9 18l6-6-6-6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="settings-detail-panel" class="fullscreen-panel">
+        <div class="fullscreen-panel-header">
+            <button class="panel-back-btn" id="back-to-settings-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="none" stroke="currentColor" stroke-width="1.5" d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <h2 id="settings-detail-title">设置</h2>
+        </div>
+        <div class="fullscreen-panel-body" id="settings-detail-content">
+        </div>
+    </div>
+
+    <div id="panel-overlay" class="panel-overlay"></div>
+
+    <div id="stats-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>知识库统计</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="stats-modal-body">
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 反馈优化</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>请描述您希望如何改进这个回答:</p>
+                <textarea id="feedback-input" rows="4" placeholder="例如: 希望增加更多代码示例..."></textarea>
+                <div class="feedback-actions">
+                    <button id="submit-feedback-btn" class="btn-primary">提交反馈</button>
+                    <button id="cancel-feedback-btn" class="btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="import-path-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📂 导入目录</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>请输入要导入的目录路径:</p>
+                <input type="text" id="import-path-input" placeholder="例如: C:\kingdee\metadata">
+                <div class="import-actions">
+                    <button id="start-import-btn" class="btn-primary">开始导入</button>
+                    <button id="cancel-import-btn" class="btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="manage-models-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📋 模型管理</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="manage-models-header">
+                    <div class="manage-models-actions">
+                        <button id="add-new-model-btn" class="btn-primary">➕ 添加模型</button>
+                        <button id="reset-hidden-btn" class="btn-secondary">🔄 恢复隐藏模型</button>
+                    </div>
+                </div>
+                <div id="models-list" class="models-list">
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-model-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="edit-modal-title">编辑模型</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="add-model-form">
+                    <input type="hidden" id="edit-model-key">
+                    <input type="hidden" id="edit-is-new" value="false">
+                    
+                    <div class="form-group">
+                        <label for="edit-model-provider">提供商:</label>
+                        <div class="provider-input-group">
+                            <select id="edit-model-provider">
+                                <option value="openai">OpenAI</option>
+                                <option value="doubao">豆包(字节跳动)</option>
+                                <option value="kimi">Kimi(月之暗面)</option>
+                                <option value="minimax">MiniMax</option>
+                                <option value="glm">智谱GLM</option>
+                                <option value="local">本地模型</option>
+                                <option value="custom">自定义...</option>
+                            </select>
+                            <input type="text" id="edit-model-provider-custom" placeholder="输入提供商名称" style="display: none;">
+                        </div>
+                        <small class="form-hint">选择或输入自定义提供商</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-model-name">模型名称:</label>
+                        <input type="text" id="edit-model-name" placeholder="例如: gpt-4o">
+                        <div id="edit-model-name-suggestions" class="model-suggestions"></div>
+                        <small class="form-hint">API调用的实际模型名称</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-model-display-name">显示名称:</label>
+                        <input type="text" id="edit-model-display-name" placeholder="例如: 我的GPT-4o">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-model-api-base">API地址:</label>
+                        <input type="text" id="edit-model-api-base" placeholder="https://api.example.com/v1">
+                        <small class="form-hint" id="edit-api-base-hint">选择提供商后会显示默认地址</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-model-api-key">API Key:</label>
+                        <div class="api-key-input-group">
+                            <input type="password" id="edit-model-api-key" placeholder="输入API Key">
+                            <button id="toggle-edit-api-key" class="btn-icon" title="显示/隐藏">👁️</button>
+                        </div>
+                        <small class="form-hint">API密钥，用于身份验证</small>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-model-max-tokens">最大Token数:</label>
+                            <input type="number" id="edit-model-max-tokens" value="4096" min="100" max="128000">
+                            <small class="form-hint">控制回复的最大长度</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="add-model-actions">
+                    <button id="save-model-btn" class="btn-primary">保存</button>
+                    <button id="cancel-edit-btn" class="btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2 id="confirm-modal-title">确认操作</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message">确定要执行此操作吗？</p>
+                <div class="confirm-actions">
+                    <button id="confirm-yes-btn" class="btn-danger">确认</button>
+                    <button id="confirm-no-btn" class="btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sessions-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📋 对话记录</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="sessions-list" class="sessions-list">
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="session-detail-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>💬 对话详情</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="session-detail-content">
+                </div>
+                <div class="session-actions">
+                    <button id="extract-this-session-btn" class="btn-primary">🔍 提取知识</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="corrections-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>✏️ 待审核纠正</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="corrections-list" class="corrections-list">
+                    <p>加载中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="extraction-result-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>🔍 知识提取结果</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="extraction-result-content">
+                </div>
+                <div class="extraction-actions">
+                    <button id="import-extractions-btn" class="btn-primary">📥 导入到知识库</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="token-report-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>📈 Token使用报告</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="token-report-content">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="clarification-modal" class="modal">
+        <div class="modal-content modal-medium">
+            <div class="modal-header">
+                <h2>❓ 需求澄清</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="clarification-hint">为了更准确地理解您的需求，请回答以下问题：</p>
+                <div id="clarification-questions-container">
+                </div>
+                <div class="clarification-actions">
+                    <button id="submit-clarification-btn" class="btn-primary">✓ 提交回答</button>
+                    <button id="cancel-clarification-btn" class="btn-secondary">跳过</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>
